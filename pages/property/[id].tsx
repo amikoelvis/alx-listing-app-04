@@ -1,5 +1,7 @@
-import { PROPERTYLISTINGSAMPLE } from "@/constants/index"; // import sample property data
-import { useRouter } from "next/router"; // for routing to dynamic page
+import { useRouter } from "next/router"; // dynamic routing
+import { useState, useEffect } from "react";
+import axios from "axios";
+
 import PropertyDetail from "@/components/property/PropertyDetail"; // property detail section
 import BookingSection from "@/components/property/BookingSection"; // booking section
 import ReviewSection from "@/components/property/ReviewSection"; // review section
@@ -7,9 +9,40 @@ import ReviewSection from "@/components/property/ReviewSection"; // review secti
 export default function PropertyPage() {
   const router = useRouter();
   const { id } = router.query; // Get the property ID from the URL
-  const property = PROPERTYLISTINGSAMPLE.find((item) => item.name === id); // Find the property by name
 
-  if (!property) return <p>Property not found</p>; // Show if property doesn't exist
+  const [property, setProperty] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return; // wait until the id is available from the router
+
+    const fetchProperty = async () => {
+      try {
+        const response = await axios.get(`/api/properties/${id}`);
+        setProperty(response.data);
+      } catch (err) {
+        console.error("Error fetching property:", err);
+        setError("Failed to load property details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperty();
+  }, [id]);
+
+  if (loading) {
+    return <p className="p-6">Loading...</p>;
+  }
+
+  if (error) {
+    return <p className="p-6 text-red-500">{error}</p>;
+  }
+
+  if (!property) {
+    return <p className="p-6">Property not found</p>;
+  }
 
   return (
     <div className="container mx-auto p-6">
@@ -22,7 +55,7 @@ export default function PropertyPage() {
       </div>
 
       {/* Review Section */}
-      <ReviewSection reviews={property.reviews} />
+      <ReviewSection reviews={property.reviews || []} />
     </div>
   );
 }
